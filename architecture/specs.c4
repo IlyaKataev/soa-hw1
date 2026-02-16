@@ -1,0 +1,9 @@
+specification {
+  element actor
+  element system
+  element container
+  element database
+  element external_system
+  element queue
+  element storage
+}

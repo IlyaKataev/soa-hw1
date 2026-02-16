@@ -1,0 +1,24 @@
+model {
+  marketplace_mono = system 'Marketplace (Monolith)' {
+    app = container 'Monolith App' {
+      technology 'Go'
+      description 'Все модули в одном приложении'
+    }
+    db = database 'Shared DB' {
+      technology 'Postgres'
+    }
+  }
+
+  buyer -> app
+  seller -> app
+  app -> db 'R/W'
+  app -> yookassa 'Оплата'
+  app -> unisender 'Уведомления'
+}
+
+views {
+  view mono_view of marketplace_mono {
+    title 'Monolithic Architecture'
+    include *
+  }
+}

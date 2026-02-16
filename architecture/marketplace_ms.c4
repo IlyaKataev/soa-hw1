@@ -1,0 +1,127 @@
+model {
+  marketplace_ms = system 'Marketplace (Microservices)' {
+
+    api_gateway = container 'API Gateway' {
+      description 'Rate Limiting / Routing'
+      technology 'Go, Nginx'
+    }
+
+    object_storage = storage 'S3 Storage' {
+      description 'Хранилище изображений товаров'
+      technology 'AWS S3'
+    }
+
+    auth_service = container 'Auth Service' {
+      description 'SSO, JWT, RBAC'
+      technology 'Go'
+    }
+    
+    catalog_service = container 'Catalog Service' {
+      description 'Товары, категории, остатки, поиск'
+      technology 'Go'
+    }
+    
+    order_service = container 'Order Service' {
+      description 'Оркестрация заказа (Saga Orchestrator)'
+      technology 'Go'
+    }
+    
+    payment_service = container 'Payment Service' {
+      description 'Процессинг транзакций'
+      technology 'Go'
+    }
+    
+    reco_service = container 'Recommendation Service' {
+      description 'Персонализация и ранжирование'
+      technology 'Python, FastAPI'
+    }
+    
+    notify_service = container 'Notification Service' {
+      description 'Агрегатор уведомлений'
+      technology 'Go'
+    }
+
+    auth_db = database 'Auth DB' {
+      technology 'PostgreSQL'
+    }
+    
+    catalog_db = database 'Catalog Primary' {
+      description 'Master data товаров'
+      technology 'MongoDB'
+    }
+    search_engine = database 'Search Engine' {
+      description 'Поисковый индекс'
+      technology 'Elasticsearch'
+    }
+
+    order_db = database 'Order DB' {
+      description 'Транзакционные данные'
+      technology 'PostgreSQL'
+    }
+    
+    payment_db = database 'Payment DB' {
+      description 'Транзакционные данные платежей'
+      technology 'PostgreSQL'
+    }
+
+    reco_db = database 'User Graph' {
+      technology 'Neo4j'
+    }
+    reco_cache = database 'Feed Cache' {
+      description 'Готовая лента для пользователя'
+      technology 'Redis'
+    }
+
+    kafka = queue 'Event Bus' {
+      description 'Kafka Cluster'
+      technology 'Apache Kafka'
+    }
+  }
+
+
+
+  buyer -> cdn 'Загрузка картинок'
+  buyer -> api_gateway 'REST / GraphQL'
+  seller -> api_gateway 'REST'
+
+  api_gateway -> auth_service 'Verify Token'
+  api_gateway -> catalog_service 'Search/Get'
+  api_gateway -> order_service 'Checkout'
+  api_gateway -> reco_service 'Get Personal Feed'
+
+  auth_service -> auth_db 'R/W'
+  
+  catalog_service -> catalog_db 'Write Master'
+  catalog_service -> search_engine 'Read Search'
+  catalog_service -> object_storage 'Upload Images'
+  
+  order_service -> order_db 'ACID Tx'
+  payment_service -> payment_db 'ACID Tx'
+  
+  reco_service -> reco_db 'Graph Analysis'
+  reco_service -> reco_cache 'Get/Set Hot Feed'
+
+  order_service -> catalog_service 'gRPC: ReserveStock'
+  order_service -> payment_service 'gRPC: InitPaymentSession'
+
+  
+  catalog_service -> kafka 'Produce: ProductChanged'
+  kafka -> reco_service 'Consume: Materialize View'
+  order_service -> kafka 'Produce: OrderCreated'
+  
+  payment_service -> yookassa 'HTTPS: Webhook'
+  payment_service -> kafka 'Produce: PaymentSucceeded'
+  
+  kafka -> order_service 'Consume: PaymentResult'
+  kafka -> notify_service 'Consume: Send Status Email'
+
+  notify_service -> unisender 'HTTPS'
+  cdn -> object_storage 'Pull Origin'
+}
+
+views {
+  view ms_view of marketplace_ms {
+    title 'Microservices Architecture'
+    include *
+  }
+}

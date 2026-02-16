@@ -1,0 +1,8 @@
+model {
+  buyer = actor 'Покупатель'
+  seller = actor 'Продавец'
+
+  yookassa = external_system 'ЮKassa'
+  unisender = external_system 'Unisender'
+  cdn = external_system 'CDN'
+}
